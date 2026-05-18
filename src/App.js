@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaTrash, FaBoxOpen, FaDollarSign } from 'react-icons/fa';
 
 export default function App() {
 
@@ -6,16 +7,15 @@ export default function App() {
   const [nombre, setNombre] = useState('');
   const [precio, setPrecio] = useState('');
   const [stock, setStock] = useState('');
+  const [busqueda, setBusqueda] = useState('');
 
-  // IP DE TU PC
-  const API = 'http://192.168.1.248:5000';
+  const API = 'http://localhost:5000';
 
   // OBTENER PRODUCTOS
   useEffect(() => {
     fetch(`${API}/productos`)
       .then(res => res.json())
-      .then(data => setProductos(data))
-      .catch(err => console.log(err));
+      .then(data => setProductos(data));
   }, []);
 
   // AGREGAR PRODUCTO
@@ -23,134 +23,141 @@ export default function App() {
 
     e.preventDefault();
 
+    if (!nombre || precio <= 0 || stock < 0) {
+      alert('Datos inválidos');
+      return;
+    }
+
     const nuevo = {
       nombre,
       precio: parseFloat(precio),
       stock: parseInt(stock)
     };
 
-    try {
+    const res = await fetch(`${API}/productos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(nuevo)
+    });
 
-      const res = await fetch(`${API}/productos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(nuevo)
-      });
+    const productoGuardado = await res.json();
 
-      const productoGuardado = await res.json();
+    setProductos([...productos, productoGuardado]);
 
-      setProductos([...productos, productoGuardado]);
-
-      setNombre('');
-      setPrecio('');
-      setStock('');
-
-    } catch (error) {
-      console.log(error);
-      alert('Error conectando con el servidor');
-    }
+    setNombre('');
+    setPrecio('');
+    setStock('');
   };
 
-  // ELIMINAR PRODUCTO
+  // ELIMINAR
   const eliminarProducto = async (id) => {
 
-    try {
+    await fetch(`${API}/productos/${id}`, {
+      method: 'DELETE'
+    });
 
-      await fetch(`${API}/productos/${id}`, {
-        method: 'DELETE'
-      });
-
-      const nuevosProductos = productos.filter(
-        producto => producto.id !== id
-      );
-
-      setProductos(nuevosProductos);
-
-    } catch (error) {
-      console.log(error);
-    }
+    setProductos(
+      productos.filter(p => p.id !== id)
+    );
   };
 
+  // FILTRAR
+  const productosFiltrados = productos.filter(p =>
+    p.nombre.toLowerCase().includes(
+      busqueda.toLowerCase()
+    )
+  );
+
+  // ESTADÍSTICAS
+  const totalProductos = productos.length;
+
+  const valorInventario = productos.reduce(
+    (acc, p) => acc + (p.precio * p.stock),
+    0
+  );
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f4f6f9',
-      padding: '40px',
-      fontFamily: 'Arial'
-    }}>
+    <div style={container}>
 
-      <div style={{
-        maxWidth: '850px',
-        margin: 'auto',
-        background: 'white',
-        padding: '30px',
-        borderRadius: '20px',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
-      }}>
+      <div style={card}>
 
-        <h1 style={{
-          textAlign: 'center',
-          marginBottom: '30px',
-          color: '#222'
-        }}>
+        <h1 style={title}>
           Sistema de Inventario
         </h1>
 
+        {/* ESTADÍSTICAS */}
+
+        <div style={statsContainer}>
+
+          <div style={statCard}>
+            <FaBoxOpen size={30} />
+            <h2>{totalProductos}</h2>
+            <p>Productos</p>
+          </div>
+
+          <div style={statCard}>
+            <FaDollarSign size={30} />
+            <h2>${valorInventario}</h2>
+            <p>Valor Inventario</p>
+          </div>
+
+        </div>
+
+        {/* BUSCADOR */}
+
+        <input
+          type="text"
+          placeholder="Buscar producto..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={searchInput}
+        />
+
+        {/* FORMULARIO */}
+
         <form
           onSubmit={agregarProducto}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '15px',
-            marginBottom: '30px'
-          }}
+          style={form}
         >
 
           <input
             type="text"
             placeholder="Nombre del producto"
             value={nombre}
-            onChange={e => setNombre(e.target.value)}
-            style={inputStyle}
+            onChange={(e) => setNombre(e.target.value)}
+            style={input}
           />
 
           <input
             type="number"
             placeholder="Precio"
             value={precio}
-            onChange={e => setPrecio(e.target.value)}
-            style={inputStyle}
+            onChange={(e) => setPrecio(e.target.value)}
+            style={input}
           />
 
           <input
             type="number"
             placeholder="Stock"
             value={stock}
-            onChange={e => setStock(e.target.value)}
-            style={inputStyle}
+            onChange={(e) => setStock(e.target.value)}
+            style={input}
           />
 
-          <button
-            type="submit"
-            style={buttonStyle}
-          >
+          <button style={button}>
             Guardar Producto
           </button>
 
         </form>
 
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse'
-        }}>
+        {/* TABLA */}
+
+        <table style={table}>
 
           <thead>
-            <tr style={{
-              backgroundColor: '#007bff',
-              color: 'white'
-            }}>
+            <tr style={thead}>
               <th style={thtd}>Producto</th>
               <th style={thtd}>Precio</th>
               <th style={thtd}>Stock</th>
@@ -160,7 +167,8 @@ export default function App() {
 
           <tbody>
 
-            {productos.map((p) => (
+            {productosFiltrados.map((p) => (
+
               <tr key={p.id}>
 
                 <td style={thtd}>
@@ -176,15 +184,18 @@ export default function App() {
                 </td>
 
                 <td style={thtd}>
+
                   <button
                     onClick={() => eliminarProducto(p.id)}
                     style={deleteButton}
                   >
-                    Eliminar
+                    <FaTrash />
                   </button>
+
                 </td>
 
               </tr>
+
             ))}
 
           </tbody>
@@ -198,15 +209,66 @@ export default function App() {
 
 // ESTILOS
 
-const inputStyle = {
+const container = {
+  minHeight: '100vh',
+  background: 'linear-gradient(to right, #141e30, #243b55)',
+  padding: '40px',
+  fontFamily: 'Arial'
+};
+
+const card = {
+  maxWidth: '1000px',
+  margin: 'auto',
+  background: 'white',
+  padding: '30px',
+  borderRadius: '20px',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+};
+
+const title = {
+  textAlign: 'center',
+  marginBottom: '30px',
+  color: '#222'
+};
+
+const statsContainer = {
+  display: 'flex',
+  gap: '20px',
+  marginBottom: '20px'
+};
+
+const statCard = {
+  flex: 1,
+  background: '#007bff',
+  color: 'white',
+  padding: '20px',
+  borderRadius: '15px',
+  textAlign: 'center'
+};
+
+const searchInput = {
+  width: '100%',
+  padding: '14px',
+  marginBottom: '20px',
+  borderRadius: '10px',
+  border: '1px solid #ccc'
+};
+
+const form = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '15px',
+  marginBottom: '30px'
+};
+
+const input = {
   padding: '14px',
   borderRadius: '10px',
   border: '1px solid #ccc',
-  fontSize: '16px',
-  outline: 'none'
+  fontSize: '16px'
 };
 
-const buttonStyle = {
+const button = {
   padding: '14px',
   backgroundColor: '#007bff',
   color: 'white',
@@ -217,17 +279,27 @@ const buttonStyle = {
   fontWeight: 'bold'
 };
 
+const table = {
+  width: '100%',
+  borderCollapse: 'collapse'
+};
+
+const thead = {
+  backgroundColor: '#007bff',
+  color: 'white'
+};
+
+const thtd = {
+  padding: '15px',
+  border: '1px solid #ddd',
+  textAlign: 'center'
+};
+
 const deleteButton = {
   backgroundColor: '#dc3545',
   color: 'white',
   border: 'none',
-  padding: '8px 14px',
+  padding: '10px',
   borderRadius: '8px',
   cursor: 'pointer'
-};
-
-const thtd = {
-  padding: '14px',
-  border: '1px solid #ddd',
-  textAlign: 'center'
 };
