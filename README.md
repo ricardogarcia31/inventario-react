@@ -67,7 +67,7 @@ Acceso mediante usuario y contraseña.
 ### Clonar repositorio
 
 ```bash
-git clone https://github.com/TU-USUARIO/inventario-react.git
+git clone https://github.com/ricardogarcia31/inventario-react.git
 ```
 
 ### Entrar al proyecto
