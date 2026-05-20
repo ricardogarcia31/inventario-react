@@ -90,7 +90,6 @@ npm start
 
 ---
 
-## Capturas del Sistema
 
 ### Login
 
